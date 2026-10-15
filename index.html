@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kontrast-Labor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0}
+[hidden]{display:none!important}
+/* Layout: schmale Arbeitsfläche, oben Farbwahl + Messwert, darunter Vorschau und Prüfliste, unten Graustufen-Übung */
+:root{
+  --bg:#F1EEF4; --surface:#FFFFFF; --fg:#1F1A24; --muted:#5B5364; --line:#DDD4E6;
+  --accent:#64378C; --accent-soft:#E7DCF0; --on-accent:#FFFFFF;
+  --ok:#1E7A46; --ok-soft:#DCF1E4; --fail:#A32A2A; --fail-soft:#F6E0E0;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#17131C; --surface:#221C2A; --fg:#F1EEF4; --muted:#B9AFC4; --line:#3A3145;
+  --accent:#C8A8DE; --accent-soft:#3A2B4A; --on-accent:#1F1A24;
+  --ok:#7FD3A2; --ok-soft:#1C3527; --fail:#F0A0A0; --fail-soft:#3C2222; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#17131C; --surface:#221C2A; --fg:#F1EEF4; --muted:#B9AFC4; --line:#3A3145;
+  --accent:#C8A8DE; --accent-soft:#3A2B4A; --on-accent:#1F1A24;
+  --ok:#7FD3A2; --ok-soft:#1C3527; --fail:#F0A0A0; --fail-soft:#3C2222; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:960px;margin:0 auto;display:grid;gap:28px}
+h1{font-size:clamp(1.7rem,4vw,2.4rem);line-height:1.15;margin:0;color:var(--accent);text-wrap:balance}
+h2{font-size:1.25rem;margin:0;text-wrap:balance}
+.kicker{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 6px}
+.intro{max-width:62ch;margin:8px 0 0;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);padding:20px;display:grid;gap:18px}
+
+.pickers{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:end}
+.picker{display:grid;gap:6px;min-width:0}
+.picker label{font-weight:600;font-size:.95rem}
+.picker .row{display:flex;gap:8px;align-items:center}
+input[type=color]{width:52px;height:44px;border:1px solid var(--line);background:var(--surface);padding:2px;cursor:pointer;flex:none}
+input[type=text]{font-family:var(--mono);font-size:1rem;width:100%;min-width:0;height:44px;padding:0 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+input[type=text][aria-invalid=true]{border-color:var(--fail)}
+button{font-family:var(--sans);font-size:.95rem;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:transparent;color:var(--accent);padding:10px 14px;min-height:44px}
+button:hover{background:var(--accent-soft)}
+button.primary{background:var(--accent);color:var(--on-accent)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.presets{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.presets span{font-size:.85rem;color:var(--muted);margin-right:4px}
+.presets button{font-weight:500;font-size:.88rem;padding:6px 10px;min-height:36px;border-color:var(--line);color:var(--fg)}
+.presets button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+
+.result{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
+.preview{border:1px solid var(--line);padding:22px;display:grid;gap:14px;align-content:start;min-width:0}
+.preview .small{font-size:16px;margin:0}
+.preview .large{font-size:24px;font-weight:700;margin:0;line-height:1.2}
+.preview .ui{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.preview .fake-btn{border:2px solid currentColor;padding:8px 14px;font-weight:600;font-size:15px}
+.preview .icon{width:28px;height:28px;flex:none}
+
+.score{display:grid;gap:12px;align-content:start;min-width:0}
+.ratio{font-family:var(--mono);font-size:clamp(2.4rem,7vw,3.4rem);line-height:1;font-variant-numeric:tabular-nums;margin:0}
+.ratio small{font-size:.4em;color:var(--muted);font-family:var(--sans);display:block;margin-top:6px;letter-spacing:.02em}
+.checks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.checks li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line)}
+.checks .need{white-space:nowrap;font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.badge{font-size:.78rem;font-weight:700;letter-spacing:.04em;padding:3px 8px;text-transform:uppercase;white-space:nowrap}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.fail{background:var(--fail-soft);color:var(--fail)}
+.crit{font-size:.92rem}
+.crit b{display:block;font-weight:600}
+.crit span{color:var(--muted);font-size:.82rem}
+
+.task{margin:0;padding:12px 14px;background:var(--accent-soft);font-size:.95rem}
+.task b{color:var(--accent)}
+
+.gray-demo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.field{border:1px solid var(--line);padding:16px;display:grid;gap:8px;min-width:0;background:#FFFFFF;color:#1F1A24}
+.field h3{margin:0 0 4px;font-size:.95rem;color:#5B5364;font-weight:600}
+.field .lbl{font-size:.9rem;font-weight:600}
+.field .inp{height:40px;border:2px solid #BDB6C5;padding:0 10px;display:flex;align-items:center;font-family:var(--mono);font-size:.9rem}
+.field .inp.err{border-color:#D93636}
+.field .msg{font-size:.88rem;display:flex;gap:6px;align-items:center;color:#B42318;margin:0}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.toggle{display:inline-flex;align-items:center;justify-self:start;font-weight:600;font-size:.95rem;cursor:pointer;min-height:44px;padding:10px 14px;background:var(--accent);color:var(--on-accent);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.toggle .t-off{display:none}
+#grayToggle:checked + .toggle .t-on{display:none}
+#grayToggle:checked + .toggle .t-off{display:inline}
+#grayToggle:focus-visible + .toggle{outline:3px solid var(--accent);outline-offset:2px}
+/* Graustufen: Filter plus feste Grauwerte (gleiche Helligkeit), damit es auch ohne Filter-Unterstützung wirkt */
+#grayToggle:checked ~ .gray-demo .field{-webkit-filter:grayscale(1);filter:grayscale(1)}
+#grayToggle:checked ~ .gray-demo .inp{border-color:#B9B9B9}
+#grayToggle:checked ~ .gray-demo .inp.err{border-color:#757575}
+#grayToggle:checked ~ .gray-demo .msg{color:#5D5D5D}
+.js-off{margin:0;padding:12px 14px;border:2px solid var(--fail);background:var(--fail-soft);color:var(--fg);font-size:.95rem}
+.note{font-size:.85rem;color:var(--muted);margin:0}
+footer{font-size:.82rem;color:var(--muted)}
+
+@media (max-width:640px){
+  .pickers{grid-template-columns:1fr}
+  .pickers .swap{justify-self:start}
+  .result,.gray-demo{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:no-preference){.checks li{transition:background .2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Barrierefreiheit im UX-Design · Ausprobieren</p>
+    <h1>Kontrast-Labor</h1>
+    <p class="intro">Wählen Sie eine Text- und eine Hintergrundfarbe. Das Labor berechnet das Kontrastverhältnis nach WCAG und zeigt, welche Anforderungen erfüllt sind.</p>
+  </header>
+
+  <p class="js-off" id="jsOff"><b>Eingeschränkte Ansicht:</b> Diese Ansicht führt keine Skripte aus, daher reagieren Farbwahl und Messung nicht. Öffnen Sie die Seite direkt im Browser, nicht in der Vorschau eines Cloud-Speichers.</p>
+
+  <section class="panel" aria-labelledby="h-farben">
+    <h2 id="h-farben">1. Farben wählen</h2>
+    <div class="pickers">
+      <div class="picker">
+        <label for="fgHex">Textfarbe</label>
+        <div class="row">
+          <input type="color" id="fgPick" value="#64378c" aria-label="Textfarbe wählen">
+          <input type="text" id="fgHex" value="#64378C" spellcheck="false" autocomplete="off">
+        </div>
+      </div>
+      <button class="swap" id="swap" type="button" title="Text- und Hintergrundfarbe tauschen">⇄ Tauschen</button>
+      <div class="picker">
+        <label for="bgHex">Hintergrundfarbe</label>
+        <div class="row">
+          <input type="color" id="bgPick" value="#f1eef4" aria-label="Hintergrundfarbe wählen">
+          <input type="text" id="bgHex" value="#F1EEF4" spellcheck="false" autocomplete="off">
+        </div>
+      </div>
+    </div>
+    <div class="presets" id="presets">
+      <span>Beispiele:</span>
+      <button type="button" data-fg="#64378C" data-bg="#F1EEF4" aria-pressed="true">HKA-Violett auf Hellgrau</button>
+      <button type="button" data-fg="#C8A8DE" data-bg="#FFFFFF" aria-pressed="false">Flieder auf Weiß</button>
+      <button type="button" data-fg="#949494" data-bg="#FFFFFF" aria-pressed="false">Hellgrau auf Weiß</button>
+      <button type="button" data-fg="#FFFFFF" data-bg="#F2A900" aria-pressed="false">Weiß auf Gelb</button>
+      <button type="button" data-fg="#1F1A24" data-bg="#FFFFFF" aria-pressed="false">Fast Schwarz auf Weiß</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-ergebnis">
+    <h2 id="h-ergebnis">2. Ergebnis prüfen</h2>
+    <div class="result">
+      <div class="preview" id="preview" style="color:#64378C;background-color:#F1EEF4">
+        <p class="small">Fließtext in 16 px: Die Vorlesung beginnt um 9:45 Uhr im Raum E 201.</p>
+        <p class="large">Große Überschrift in 24 px fett</p>
+        <div class="ui">
+          <span class="fake-btn">Anmelden</span>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-6h2v6Zm0-8h-2V7h2v2Z"/></svg>
+          <span style="font-size:14px">Symbol und Rahmen</span>
+        </div>
+      </div>
+      <div class="score">
+        <p class="ratio" id="ratio" aria-live="polite">7,40 : 1<small>Kontrastverhältnis (1:1 bis 21:1)</small></p>
+        <ul class="checks" id="checks"><li><span class="badge ok">erfüllt</span><span class="crit"><b>Fließtext · Stufe AA</b><span>WCAG 1.4.3</span></span><span class="need">≥ 4,5:1</span></li><li><span class="badge ok">erfüllt</span><span class="crit"><b>Große Schrift · Stufe AA</b><span>WCAG 1.4.3</span></span><span class="need">≥ 3:1</span></li><li><span class="badge ok">erfüllt</span><span class="crit"><b>Bedienelemente und Grafiken · Stufe AA</b><span>WCAG 1.4.11</span></span><span class="need">≥ 3:1</span></li><li><span class="badge ok">erfüllt</span><span class="crit"><b>Fließtext · Stufe AAA</b><span>WCAG 1.4.6</span></span><span class="need">≥ 7:1</span></li></ul>
+      </div>
+    </div>
+    <p class="task"><b>Aufgabe:</b> Starten Sie mit „Flieder auf Weiß“. Verändern Sie nur die Textfarbe, bis der Fließtext Stufe AA erreicht. Wie dunkel muss das Flieder werden?</p>
+  </section>
+
+  <section class="panel" aria-labelledby="h-farbe">
+    <h2 id="h-farbe">3. Nie nur Farbe</h2>
+    <p class="note" style="font-size:.95rem;color:var(--fg)">Etwa 8 % der Männer und 0,5 % der Frauen nordeuropäischer Herkunft haben eine Farbsehschwäche. Schalten Sie die Graustufen-Ansicht ein: Welche Fehlermeldung bleibt erkennbar?</p>
+    <input type="checkbox" id="grayToggle" class="vh">
+    <label for="grayToggle" class="toggle"><span class="t-on">Graustufen einschalten</span><span class="t-off">Graustufen ausschalten</span></label>
+    <div class="gray-demo" id="grayDemo">
+      <div class="field">
+        <h3>Variante A: nur Farbe</h3>
+        <span class="lbl">E-Mail-Adresse</span>
+        <div class="inp err">max.muster@</div>
+      </div>
+      <div class="field">
+        <h3>Variante B: Farbe, Symbol und Text</h3>
+        <span class="lbl">E-Mail-Adresse</span>
+        <div class="inp err">max.muster@</div>
+        <p class="msg"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 1 21h22L12 2Zm1 15h-2v-2h2v2Zm0-4h-2V9h2v4Z"/></svg>Bitte eine vollständige E-Mail-Adresse eingeben.</p>
+      </div>
+    </div>
+    <p class="note">Die Graustufen-Ansicht ist eine Vereinfachung. Sie zeigt, ob Information nur über den Farbton transportiert wird.</p>
+  </section>
+
+  <footer>Grenzwerte nach WCAG 2.2: Erfolgskriterien 1.4.3 Kontrast (Minimum), 1.4.6 Kontrast (erhöht) und 1.4.11 Nicht-Text-Kontrast. Große Schrift bedeutet ab 18 pt (24 px) oder ab 14 pt (ca. 18,7 px) fett. Formel: (L1 + 0,05) / (L2 + 0,05) mit relativer Leuchtdichte L.</footer>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fgPick=$("fgPick"),bgPick=$("bgPick"),fgHex=$("fgHex"),bgHex=$("bgHex");
+  const CRITS=[
+    {name:"Fließtext",level:"AA",need:4.5,info:"WCAG 1.4.3"},
+    {name:"Große Schrift",level:"AA",need:3,info:"WCAG 1.4.3"},
+    {name:"Bedienelemente und Grafiken",level:"AA",need:3,info:"WCAG 1.4.11"},
+    {name:"Fließtext",level:"AAA",need:7,info:"WCAG 1.4.6"}
+  ];
+  function norm(v){
+    v=v.trim().replace(/^#?/,"#");
+    if(/^#[0-9a-fA-F]{3}$/.test(v)) v="#"+v.slice(1).split("").map(c=>c+c).join("");
+    return /^#[0-9a-fA-F]{6}$/.test(v)?v.toUpperCase():null;
+  }
+  function lum(hex){
+    const c=[1,3,5].map(i=>parseInt(hex.substr(i,2),16)/255)
+      .map(s=>s<=0.04045?s/12.92:Math.pow((s+0.055)/1.055,2.4));
+    return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
+  }
+  function ratio(a,b){const l1=lum(a),l2=lum(b);return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05);}
+  function fmt(n){return (Math.floor(n*100)/100).toFixed(2).replace(".",",");}
+  function render(){
+    const fg=norm(fgHex.value),bg=norm(bgHex.value);
+    fgHex.setAttribute("aria-invalid",fg?"false":"true");
+    bgHex.setAttribute("aria-invalid",bg?"false":"true");
+    if(!fg||!bg) return;
+    const r=ratio(fg,bg);
+    const p=$("preview"); p.style.color=fg; p.style.backgroundColor=bg;
+    $("ratio").innerHTML=fmt(r)+" : 1<small>Kontrastverhältnis (1:1 bis 21:1)</small>";
+    $("checks").innerHTML=CRITS.map(c=>{
+      const ok=r>=c.need;
+      return `<li><span class="badge ${ok?"ok":"fail"}">${ok?"erfüllt":"nicht erfüllt"}</span>`+
+        `<span class="crit"><b>${c.name} · Stufe ${c.level}</b><span>${c.info}</span></span>`+
+        `<span class="need">≥ ${String(c.need).replace(".",",")}:1</span></li>`;
+    }).join("");
+    document.querySelectorAll("#presets button").forEach(b=>
+      b.setAttribute("aria-pressed",String(b.dataset.fg===fg&&b.dataset.bg===bg)));
+  }
+  function setColors(fg,bg){
+    fgHex.value=fg; bgHex.value=bg;
+    fgPick.value=fg.toLowerCase(); bgPick.value=bg.toLowerCase(); render();
+  }
+  fgPick.addEventListener("input",()=>{fgHex.value=fgPick.value.toUpperCase();render();});
+  bgPick.addEventListener("input",()=>{bgHex.value=bgPick.value.toUpperCase();render();});
+  fgHex.addEventListener("input",()=>{const v=norm(fgHex.value);if(v)fgPick.value=v.toLowerCase();render();});
+  bgHex.addEventListener("input",()=>{const v=norm(bgHex.value);if(v)bgPick.value=v.toLowerCase();render();});
+  $("swap").addEventListener("click",()=>setColors(norm(bgHex.value)||"#FFFFFF",norm(fgHex.value)||"#000000"));
+  document.querySelectorAll("#presets button").forEach(b=>b.addEventListener("click",()=>setColors(b.dataset.fg,b.dataset.bg)));
+  $("jsOff").hidden=true;
+  render();
+})();
+</script>
+</body>
+</html>
